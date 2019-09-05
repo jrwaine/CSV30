@@ -24,7 +24,7 @@ def filter_avg_separated(img, h, w):
     img_aux = np.zeros(img.shape)
     x_range = range(w//2, img.shape[1]-w//2)
     y_range = range(h//2, img.shape[0]-h//2)
-    for y in y_range:
+    for y in range(0, img.shape[0]):
         for x in x_range:
             sum = 0
             for xp in range(x-w//2, x+w//2+1):
