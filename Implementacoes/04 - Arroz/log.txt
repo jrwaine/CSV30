@@ -6,12 +6,12 @@ Kernel size: 5
 
 IMAGES:
 60.bmp
-    number of rices: 61
+    number of rices: 60
 82.bmp
-    number of rices: 80
+    number of rices: 77
 114.bmp
-    number of rices: 110
+    number of rices: 106
 150.bmp
-    number of rices: 117
+    number of rices: 90
 205.bmp
-    number of rices: 148
+    number of rices: 109
