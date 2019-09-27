@@ -2,16 +2,16 @@ PARAMETERS:
 Box size: 71
 Treshold: 0.20
 Min val. pixel: 0.70
-Kernel size: 5
+Kernel size: 3
 
 IMAGES:
 60.bmp
-    number of rices: 60
+    number of rices: 61
 82.bmp
-    number of rices: 77
+    number of rices: 83
 114.bmp
-    number of rices: 106
+    number of rices: 113
 150.bmp
-    number of rices: 90
+    number of rices: 148
 205.bmp
-    number of rices: 109
+    number of rices: 194

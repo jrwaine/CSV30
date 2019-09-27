@@ -1,4 +1,7 @@
 from blob import *
+import cv2 as cv
+import param as pm
+import numpy as np
 
 WHITE = 1.0
 BLACK = 0.0
@@ -49,3 +52,71 @@ def validaBlobs(blobs):
             continue
         valBlobs.append(blob)
     return valBlobs
+
+
+def checkDiscontinuity(blob, imgBin):
+    disc = [0, 0]
+    for x in range(blob.xmin, blob.xmax+1):
+        val = imgBin[blob.ymin, x]
+        change = 0
+        for y in range(blob.ymin+1, blob.ymax+1):
+            if imgBin[y, x] != val:
+                val = imgBin[y, x]
+                change += 1
+                if change > 2:
+                    disc[0] += 1
+                    break
+    
+    for y in range(blob.ymin, blob.ymax+1):
+        val = imgBin[y, blob.xmin]
+        change = 0
+        for x in range(blob.xmin+1, blob.xmax+1):
+            if imgBin[y, x] != val:
+                val = imgBin[y, x]
+                change += 1
+                if change > 2:
+                    disc[1] += 1
+                    break
+    return disc
+
+
+def erodeBlob(blob, imgBin):
+    kernel = np.ones((pm.KERNEL_SIZE, pm.KERNEL_SIZE), np.uint8)
+    imgErode = cv.erode(imgBin, kernel, iterations=1)
+    for y, x in blob.pixels:
+        imgBin[y, x] = imgErode[y, x]
+
+
+def updateBlob(blobs, blobUpdate, imgBin):
+    for y, x in blobUpdate.pixels:
+        if(imgBin[y, x] > BLACK):
+            imgBin[y, x] = WHITE
+    newBlobs = []
+
+    for y in range(blobUpdate.ymin, blobUpdate.ymax+1):
+        for x in range(blobUpdate.xmin, blobUpdate.xmax+1):
+            if(imgBin[y, x] == WHITE):
+                newBlobs.append(Blob())
+                rotula(imgBin, newBlobs[-1], y, x)
+    return newBlobs
+
+
+def treatBlobs(blobs, imgBin):
+    newBlobs = []
+    treatedBlobs = []
+    for blob in blobs:
+        disc = checkDiscontinuity(blob, imgBin)
+        if(sum(disc) >= 2):
+            erodeBlob(blob, imgBin)
+            resBlobs = updateBlob(blobs, blob, imgBin)
+            for resBlob in resBlobs:
+                newBlobs.append(resBlob)
+            treatedBlobs.append(blob)
+
+    for blob in treatedBlobs:
+        blobs.remove(blob)
+    
+    for blob in newBlobs:
+        blobs.append(blob)
+    
+    return (treatedBlobs, newBlobs)

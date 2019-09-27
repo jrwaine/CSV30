@@ -40,12 +40,19 @@ for i in range(0, len(IMGS_IN)):
     # binary image 
     imgBin = np.where(np.logical_and(img >= imgAvg + pm.LIM, img > pm.MIN_L), 1.0, 0.0)
     # img to classify rice (erode image)
-    kernel = np.ones((pm.KERNEL_SIZE, pm.KERNEL_SIZE), np.uint8)
+    #kernel = np.ones((pm.KERNEL_SIZE, pm.KERNEL_SIZE), np.uint8)
     #imgCls = cv.erode(imgBin, kernel, iterations=1)
-    imgCls = imgBin    
+    #imgCls = imgBin    
     # get rice blobs
-    blobs = fc.getBlobs(imgCls)
+    blobs = fc.getBlobs(imgBin)
     blobs = fc.validaBlobs(blobs)
+    treat = True
+    while(treat):
+        res = fc.treatBlobs(blobs, imgBin)
+        if ((len(res[1]) - len(res[0])) <= 0):
+            treat = False
+
+    imgCls = imgBin
     # image to save
     img = cv.cvtColor((imgCls*255).astype('uint8'), cv.COLOR_GRAY2RGB)
 
