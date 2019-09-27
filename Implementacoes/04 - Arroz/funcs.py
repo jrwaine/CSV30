@@ -7,9 +7,9 @@ WHITE = 1.0
 BLACK = 0.0
 ROTULATED = 0.99 # value of rotulated pixel
 
-ALTURA_MIN = 2
-LARGURA_MIN = 2
-N_PIXELS_MIN = 4
+ALTURA_MIN = 7
+LARGURA_MIN = 7
+N_PIXELS_MIN = 15
 
 # funcao recursiva para rotular pixels e blob
 def rotula(img, blob, y0, x0):
@@ -56,6 +56,7 @@ def validaBlobs(blobs):
 
 def checkDiscontinuity(blob, imgBin):
     disc = [0, 0]
+    # check vertical discontinuities
     for x in range(blob.xmin, blob.xmax+1):
         val = imgBin[blob.ymin, x]
         change = 0
@@ -66,7 +67,7 @@ def checkDiscontinuity(blob, imgBin):
                 if change > 2:
                     disc[0] += 1
                     break
-    
+    # check horizontal discontinuities
     for y in range(blob.ymin, blob.ymax+1):
         val = imgBin[y, blob.xmin]
         change = 0
@@ -83,21 +84,23 @@ def checkDiscontinuity(blob, imgBin):
 def erodeBlob(blob, imgBin):
     kernel = np.ones((pm.KERNEL_SIZE, pm.KERNEL_SIZE), np.uint8)
     imgErode = cv.erode(imgBin, kernel, iterations=1)
+    # update blob pixels to pixels from eroded image
     for y, x in blob.pixels:
         imgBin[y, x] = imgErode[y, x]
 
 
 def updateBlob(blobs, blobUpdate, imgBin):
+    # "unrotulate" all non black pixels in blob
     for y, x in blobUpdate.pixels:
         if(imgBin[y, x] > BLACK):
             imgBin[y, x] = WHITE
     newBlobs = []
 
-    for y in range(blobUpdate.ymin, blobUpdate.ymax+1):
-        for x in range(blobUpdate.xmin, blobUpdate.xmax+1):
-            if(imgBin[y, x] == WHITE):
-                newBlobs.append(Blob())
-                rotula(imgBin, newBlobs[-1], y, x)
+    # rotulate blob area again
+    for y, x in blobUpdate.pixels:
+        if(imgBin[y, x] == WHITE):
+            newBlobs.append(Blob())
+            rotula(imgBin, newBlobs[-1], y, x)
     return newBlobs
 
 
@@ -106,16 +109,23 @@ def treatBlobs(blobs, imgBin):
     treatedBlobs = []
     for blob in blobs:
         disc = checkDiscontinuity(blob, imgBin)
+        # if the blobs has at least two discontinuities
         if(sum(disc) >= 2):
             erodeBlob(blob, imgBin)
             resBlobs = updateBlob(blobs, blob, imgBin)
+            # if the blob was destroyed, consider the old one as a new blob
+            if len(resBlobs) == 0:
+                newBlobs.append(blob)
+            else:
+                treatedBlobs.append(blob)
+            # add blobs created to new Blobs
             for resBlob in resBlobs:
                 newBlobs.append(resBlob)
-            treatedBlobs.append(blob)
-
+            
+    # remove treated blobs
     for blob in treatedBlobs:
         blobs.remove(blob)
-    
+    # add new blobs
     for blob in newBlobs:
         blobs.append(blob)
     
