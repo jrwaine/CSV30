@@ -1,3 +1,3 @@
-STD_DEV_MULTP = 10 # maximum std deviation to consider unkown
-NORM_PERC = 15 # percentage of pixels to disconsider in normalization (bimodal)
-MIN_SAT = 50 # minimal pixel saturation to set it to a higher saturation
+STD_DEV_MULTP = 20 # maximum std deviation to consider unkown
+NORM_PERC = 10 # percentage of pixels to disconsider in normalization (bimodal)
+MIN_SAT = 100 # minimal pixel saturation to set it to a higher saturation
