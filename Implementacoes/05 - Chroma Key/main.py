@@ -45,7 +45,7 @@ def lowerGreenSaturation(img):
     imgHLS = cv.cvtColor(img, cv.COLOR_RGB2HLS)
     sat = imgHLS[:,:,2]
     hue = imgHLS[:,:,0]
-    sat = np.where(np.logical_and(hue > (90-22.5)/2, hue < (135+22.5)/2), 20, sat)
+    sat = np.where(np.logical_and(hue > (90-25)/2, hue < (135+25)/2), 20, sat)
     imgHLS[:,:,2] = sat
     img = cv.cvtColor(imgHLS, cv.COLOR_HLS2RGB)
     return img
@@ -139,30 +139,28 @@ for name in range(0, len(IMGS_IN)):
     
     # update unkown pixels
     imgBin = np.where((np.logical_and(imgGray < lim2, imgGray > lim1)), 128, imgBin)
-    
 
     imgMask = cv.imread(IMG_MASK, cv.IMREAD_COLOR).astype('float32') # read mask image
 
     imgMask = cv.resize(imgMask, (img.shape[1], img.shape[0]))
-    imgSave = np.zeros(img.shape)
+    
     t1 = time.time()
     img = lowerGreenSaturation(img)
     times.append(time.time()-t1) # 5
+    
     t1 = time.time()
-    for y in range(0, len(imgBin)):
-        for x in range(0, len(imgBin[y])):
-            if(imgBin[y, x] == 255) or imgBin[y, x] == 128:
-                imgSave[y, x] = img[y, x]
-            else: 
-                imgSave[y, x] = imgMask[y, x]
-            '''
-            elif imgBin[y, x] == 128:
-                weightMask = 255-(imgGray[y,x]-trVal)
-                weightImg = 255-(imgGray[y, x]-np.average(hist1))
-                imgSave[y, x] = (imgMask[y, x] * weightMask + img[y, x] * weightImg)
-                imgSave[y, x] /= (weightImg+weightMask)
-            '''
-    times.append(time.time()-t1) # 6
+    alpha = np.where(imgBin == 128, (imgGray-lim1)/(lim2-lim1), 1)
+    alpha = np.where(imgBin == 0, 0, alpha)
+    times.append(time.time()-t1)
+
+    t1 = time.time()
+    imgSave = np.zeros(img.shape)
+    for y in range(0, len(img)):
+        for x in range(0, len(img[y])):
+            imgSave[y, x] = img[y, x]*alpha[y, x] + imgMask[y, x]*(1-alpha[y, x])
+    #imgSave = cv.addWeighted(img, alpha, imgMask, beta, 0.0)
+    times.append(time.time()-t1)
+
     print(times)
     # save image
     cv.imwrite(IMGS_OUT[name], imgSave.astype('uint8'))
