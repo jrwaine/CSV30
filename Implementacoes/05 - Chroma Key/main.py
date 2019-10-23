@@ -3,6 +3,9 @@ import numpy as np
 import copy as cp
 import param as pm
 import time
+import pprint as pp
+
+
 IMGS_IN = [ \
     "img/0.bmp",
     "img/1.bmp",
@@ -35,34 +38,14 @@ def getDist(imgHLS):
     return imgGray
 
 
-def getDistRealGreen(imgHLS, realGreen):
-    imgGray = np.zeros(img.shape[:-1]).astype('float32')
-    imgGray = ((imgHLS[:, :, 1]-realGreen[1])**2 + (imgHLS[:, :, 2]-realGreen[2])**2)**0.5
-    imgGray /= 3**0.5
-    return imgGray
-
 def lowerGreenSaturation(img):
     imgHLS = cv.cvtColor(img, cv.COLOR_RGB2HLS)
     sat = imgHLS[:,:,2]
     hue = imgHLS[:,:,0]
-    sat = np.where(np.logical_and(hue > (90-25)/2, hue < (135+25)/2), 20, sat)
+    sat = np.where(np.logical_and(hue > (90-25)/2, hue < (135+25)/2), 10, sat)
     imgHLS[:,:,2] = sat
     img = cv.cvtColor(imgHLS, cv.COLOR_HLS2RGB)
     return img
-
-def getRealGreen(imgBin, imgHLS):
-    realGreen = np.array([0.0, 0.0, 0.0])
-    total = 0
-    for y in range(0, len(imgBin)):
-        for x in range(0, len(imgBin[y])):
-            if(imgBin[y, x] == 0):
-                realGreen[0] += imgHLS[y, x, 0]
-                realGreen[1] += imgHLS[y, x, 1]
-                realGreen[2] += imgHLS[y, x, 2]
-                total += 1
-    realGreen /= total
-    print(realGreen, total)
-    return realGreen
 
 
 for name in range(0, len(IMGS_IN)):
@@ -107,16 +90,6 @@ for name in range(0, len(IMGS_IN)):
     
     # Treshold using Otsu for gray image
     trVal, imgBin = cv.threshold(imgGray.astype('uint8'),0,255,cv.THRESH_BINARY+cv.THRESH_OTSU)
-    '''
-    t1 = time.time()
-    realGreen = getRealGreen(imgBin, imgHLS)
-    imgGray = getDistRealGreen(imgHLS, realGreen)
-    times.append(time.time()-t1) # 3
-    imgGray *= 255
-    cv.normalize(imgGray, imgGray, 0, 255, cv.NORM_MINMAX)
-
-    trVal, imgBin = cv.threshold(imgGray.astype('uint8'),0,255,cv.THRESH_BINARY+cv.THRESH_OTSU)
-    '''
 
     # histogram for "upper" and "lower" pixels
     t1 = time.time()
@@ -128,40 +101,34 @@ for name in range(0, len(IMGS_IN)):
             else:
                 hist2.append(imgGray[y, x])
     hist1, hist2 = np.array(hist1), np.array(hist2)
-    times.append(time.time()-t1) # 4
+    times.append(time.time()-t1) # 3
+    
+    # limits to consider the pixel as unknow, using std deviation
     lim1 = min(trVal, np.average(hist1)+30)
     lim2 = trVal+5
-    # limits to consider the pixel as unknow, using std deviation
-    #std1, std2 = np.std(hist1), np.std(hist2)
-    
-    #lim1, lim2 = std1*pm.STD_DEV_MULTP+np.average(hist1), -std2*pm.STD_DEV_MULTP+np.average(hist2)
-    #print(std1, std2, lim1, lim2, np.max(hist1), np.min(hist2))
     
     # update unkown pixels
     imgBin = np.where((np.logical_and(imgGray < lim2, imgGray > lim1)), 128, imgBin)
 
     imgMask = cv.imread(IMG_MASK, cv.IMREAD_COLOR).astype('float32') # read mask image
-
     imgMask = cv.resize(imgMask, (img.shape[1], img.shape[0]))
     
     t1 = time.time()
     img = lowerGreenSaturation(img)
-    times.append(time.time()-t1) # 5
+    times.append(time.time()-t1) # 4
     
     t1 = time.time()
     alpha = np.where(imgBin == 128, (imgGray-lim1)/(lim2-lim1), 1)
     alpha = np.where(imgBin == 0, 0, alpha)
-    times.append(time.time()-t1)
+    times.append(time.time()-t1) # 5
 
     t1 = time.time()
     imgSave = np.zeros(img.shape)
-    for y in range(0, len(img)):
-        for x in range(0, len(img[y])):
-            imgSave[y, x] = img[y, x]*alpha[y, x] + imgMask[y, x]*(1-alpha[y, x])
-    #imgSave = cv.addWeighted(img, alpha, imgMask, beta, 0.0)
-    times.append(time.time()-t1)
+    for channel in range(0, 3):
+        imgSave[:,:,channel] = img[:,:,channel]*alpha[:,:] + imgMask[:,:,channel]*(1-alpha[:,:])
+    times.append(time.time()-t1) # 6
 
-    print(times)
+    print([round(i,2) for i in times])
     # save image
     cv.imwrite(IMGS_OUT[name], imgSave.astype('uint8'))
     
